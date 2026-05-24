@@ -1,0 +1,5 @@
+name: pacmann
+version: 0.1.0
+author: @spacemany2k38
+description: Terminal Pac-Man with authentic arcade mechanics
+type: cli-tool

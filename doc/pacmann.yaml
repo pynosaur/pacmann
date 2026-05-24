@@ -1,0 +1,44 @@
+NAME: pacmann
+VERSION: 0.1.0
+DESCRIPTION: >
+  Terminal Pac-Man with authentic arcade mechanics, rendered entirely in curses.
+
+  Based on the original PAC-MAN arcade game (1980) created by Toru Iwatani
+  and published by Namco. Game mechanics reference the Pac-Man Dossier by
+  Jamey Pittman.
+
+  PAC-MAN is a registered trademark of Bandai Namco Entertainment Inc.
+  This project is an independent fan tribute for educational purposes and
+  is not affiliated with or endorsed by Bandai Namco.
+
+USAGE: |
+  pacmann                      Start the game
+  pacmann --help               Show this help
+  pacmann --version            Show version
+
+CONTROLS: |
+  Arrow keys / WASD            Move
+  Q / Esc                      Quit
+  R                            Restart
+
+GHOSTS: |
+  B = Blinky (red)    chases you directly
+  P = Pinky (pink)    targets 4 tiles ahead of you
+  I = Inky (cyan)     flanks using Blinky's position
+  K = Clyde (orange)  chases when far, retreats when close
+
+FRUITS: |
+  Appear below the ghost pen after 70 and 170 dots eaten.
+  %  Cherry       100 pts   (Level 1)
+  &  Strawberry   300 pts   (Level 2)
+  @  Orange       500 pts   (Level 3)
+  @  Orange       700 pts   (Level 4)
+  $  Apple      1,000 pts   (Level 5)
+  $  Melon      2,000 pts   (Level 6)
+  *  Galaxian   3,000 pts   (Level 7)
+  ?  Key        5,000 pts   (Level 8+)
+
+CREDITS: |
+  Original PAC-MAN (1980) by Toru Iwatani, published by Namco (now Bandai Namco).
+  Ghost AI and game mechanics derived from "The Pac-Man Dossier" by Jamey Pittman.
+  This terminal adaptation by @spacemany2k38 as part of the Pynosaur project.
