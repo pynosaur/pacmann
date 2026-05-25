@@ -533,8 +533,8 @@ def _run(stdscr):
         hdr = f" PACMANN  Score:{g['score']}  Lv:{g['level']}  {'>' * g['lives']} "
         hx = max(0, (cols - len(hdr)) // 2)
         try:
-            stdscr.addnstr(oy - 1, hx, hdr, cols - hx,
-                           curses.color_pair(9) | curses.A_BOLD)
+            attr = curses.color_pair(9) | curses.A_BOLD
+            stdscr.addnstr(oy - 1, hx, hdr, cols - hx, attr)
         except curses.error:
             pass
 
@@ -570,8 +570,8 @@ def _run(stdscr):
                 fi = min(g['level'] - 1, len(FRUIT_TABLE) - 1)
                 fch, _, fcol = FRUIT_TABLE[fi]
                 try:
-                    stdscr.addstr(fsy, fsx, fch,
-                                  curses.color_pair(fcol) | curses.A_BOLD)
+                    attr = curses.color_pair(fcol) | curses.A_BOLD
+                    stdscr.addstr(fsy, fsx, fch, attr)
                 except curses.error:
                     pass
 
@@ -586,11 +586,14 @@ def _run(stdscr):
                     stdscr.addstr(sy, sx, '"', curses.color_pair(2))
                 elif gh[3] == 'frightened':
                     flash = gh[4] < 10 and int(time.time() * 4) % 2
-                    attr = curses.color_pair(2) | curses.A_BOLD if flash else curses.color_pair(8)
+                    if flash:
+                        attr = curses.color_pair(2) | curses.A_BOLD
+                    else:
+                        attr = curses.color_pair(8)
                     stdscr.addstr(sy, sx, 'W', attr)
                 else:
-                    stdscr.addstr(sy, sx, gnames[gi],
-                                  curses.color_pair(gcolors[gi]) | curses.A_BOLD)
+                    attr = curses.color_pair(gcolors[gi]) | curses.A_BOLD
+                    stdscr.addstr(sy, sx, gnames[gi], attr)
             except curses.error:
                 pass
 
@@ -612,7 +615,8 @@ def _run(stdscr):
         elif r['state'] == 'dead':
             msg, mc = "OUCH!", curses.color_pair(10) | curses.A_BOLD
         elif r['state'] == 'gameover':
-            msg, mc = "GAME OVER  (R)estart (Q)uit", curses.color_pair(10) | curses.A_BOLD
+            mc = curses.color_pair(10) | curses.A_BOLD
+            msg = "GAME OVER  (R)estart (Q)uit"
         elif r['state'] == 'won':
             msg = "LEVEL CLEAR!"
 
