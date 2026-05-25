@@ -206,19 +206,14 @@ def _run(stdscr):
             return False
         return True
 
-    walkable = set()
-    for y, row in enumerate(ORIGINAL_MAZE):
-        for x, ch in enumerate(row):
-            if ch in ('.', 'o', ' ', 'S') and (x, y) not in doors:
-                walkable.add((x, y))
+    # Only dot/energizer positions are valid corridor tiles
+    corridor = set(init_dots)
 
     def _random_fruit_pos(g):
-        free = walkable - g['dots'] - g['energizers']
-        for gh in []:
-            free.discard((gh[0], gh[1]))
-        if free:
-            return random.choice(list(free))
-        return (14, 17)
+        eaten = corridor - g['dots']
+        if eaten:
+            return random.choice(list(eaten))
+        return pac_start
 
     def new_game():
         return {
