@@ -1,5 +1,5 @@
 NAME: pacmann
-VERSION: 0.1.1
+VERSION: 0.1.2
 DESCRIPTION: >
   Terminal Pac-Man with authentic arcade mechanics, rendered entirely in curses.
 

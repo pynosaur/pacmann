@@ -583,9 +583,9 @@ def _run(stdscr):
                     _put(x, y, '--', curses.color_pair(1))
                 elif pos in g['energizers']:
                     blink = curses.A_BOLD if int(time.time() * 3) % 2 else 0
-                    _put(x, y, 'oo', curses.color_pair(2) | blink)
+                    _put(x, y, 'o ', curses.color_pair(2) | blink)
                 elif pos in g['dots']:
-                    _put(x, y, ' .', curses.color_pair(2))
+                    _put(x, y, '. ', curses.color_pair(2))
                 else:
                     _put(x, y, '  ')
 
@@ -601,24 +601,23 @@ def _run(stdscr):
             if gh[5]:
                 continue
             if gh[3] == 'eaten':
-                _put(gh[0], gh[1], '""', curses.color_pair(2))
+                _put(gh[0], gh[1], '" ', curses.color_pair(2))
             elif gh[3] == 'frightened':
                 flash = gh[4] < 10 and int(time.time() * 4) % 2
                 if flash:
                     attr = curses.color_pair(2) | curses.A_BOLD
                 else:
                     attr = curses.color_pair(8)
-                _put(gh[0], gh[1], 'WW', attr)
+                _put(gh[0], gh[1], 'W ', attr)
             else:
                 attr = curses.color_pair(gcolors[gi]) | curses.A_BOLD
-                n = gnames[gi]
-                _put(gh[0], gh[1], n + n, attr)
+                _put(gh[0], gh[1], gnames[gi] + ' ', attr)
 
         # Pac-Man
         pac_tiles = {
-            LEFT: '<<', RIGHT: '>>', UP: '^^', DOWN: 'VV',
+            LEFT: '< ', RIGHT: '> ', UP: '^ ', DOWN: 'V ',
         }
-        pac_ch = pac_tiles.get(r['pdir'], '>>')
+        pac_ch = pac_tiles.get(r['pdir'], '> ')
         attr = curses.color_pair(3) | curses.A_BOLD
         _put(r['px'], r['py'], pac_ch, attr)
 
