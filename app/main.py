@@ -94,21 +94,15 @@ for _tx in range(6):
     TUNNEL_ZONES.add((_tx, 14))
     TUNNEL_ZONES.add((MW - 1 - _tx, 14))
 
-# Fruit: spawns at (14, 17) after 70 and 170 dots eaten
-FRUIT_POS = (14, 17)
-FRUIT_DOTS = [70, 170]
-# (char, points, color_pair) per level
+# Fruit: (char, points, color_pair, duration_secs)
+# Spawns at random walkable tile, cycles through types
 FRUIT_TABLE = [
-    ('%', 100, 4),    # cherry (red)
-    ('&', 300, 5),    # strawberry (pink)
-    ('@', 500, 7),    # orange (green display)
-    ('@', 700, 7),    # another orange
-    ('$', 1000, 5),   # apple (pink)
-    ('$', 2000, 7),   # melon (green)
-    ('*', 3000, 6),   # galaxian (cyan)
-    ('?', 5000, 3),   # key (yellow)
+    ('%', 100, 4, 50),    # 100 pts, 50s
+    ('$', 200, 7, 40),    # 200 pts, 40s
+    ('@', 300, 6, 30),    # 300 pts, 30s
+    ('&', 1000, 5, 20),   # 1000 pts, 20s
 ]
-FRUIT_DURATION = 120  # ticks fruit stays visible (~9.6s at 80ms)
+FRUIT_SPAWN_DOTS = [30, 70, 120, 170]
 
 
 def print_help():
@@ -212,13 +206,28 @@ def _run(stdscr):
             return False
         return True
 
+    walkable = set()
+    for y, row in enumerate(ORIGINAL_MAZE):
+        for x, ch in enumerate(row):
+            if ch in ('.', 'o', ' ', 'S') and (x, y) not in doors:
+                walkable.add((x, y))
+
+    def _random_fruit_pos(g):
+        free = walkable - g['dots'] - g['energizers']
+        for gh in []:
+            free.discard((gh[0], gh[1]))
+        if free:
+            return random.choice(list(free))
+        return (14, 17)
+
     def new_game():
         return {
             'score': 0, 'lives': 3, 'level': 1,
             'dots': set(init_dots), 'energizers': set(init_energizers),
             'dots_eaten': 0,
             'fruit_active': False, 'fruit_timer': 0,
-            'fruit_spawned': 0,
+            'fruit_spawned': 0, 'fruit_idx': 0,
+            'fruit_pos': (14, 17),
         }
 
     def new_round():
@@ -408,18 +417,23 @@ def _run(stdscr):
                 else:
                     g['score'] += 10
 
-                # Spawn fruit at 70 and 170 dots
-                if (g['fruit_spawned'] < len(FRUIT_DOTS) and
-                        g['dots_eaten'] >= FRUIT_DOTS[g['fruit_spawned']]):
+                # Spawn fruit at dot thresholds
+                if (g['fruit_spawned'] < len(FRUIT_SPAWN_DOTS)
+                        and g['dots_eaten'] >= FRUIT_SPAWN_DOTS[g['fruit_spawned']]):
+                    fi = g['fruit_idx'] % len(FRUIT_TABLE)
+                    secs = FRUIT_TABLE[fi][3]
+                    ticks = int(secs * 1000 / 80)
                     g['fruit_active'] = True
-                    g['fruit_timer'] = FRUIT_DURATION
+                    g['fruit_timer'] = ticks
+                    g['fruit_pos'] = _random_fruit_pos(g)
                     g['fruit_spawned'] += 1
+                    g['fruit_idx'] += 1
 
             # Eat fruit
-            if g['fruit_active'] and pos == FRUIT_POS:
-                g['fruit_active'] = False
-                fi = min(g['level'] - 1, len(FRUIT_TABLE) - 1)
+            if g['fruit_active'] and pos == g['fruit_pos']:
+                fi = (g['fruit_idx'] - 1) % len(FRUIT_TABLE)
                 g['score'] += FRUIT_TABLE[fi][1]
+                g['fruit_active'] = False
 
             # Check collision right after pac moves (catches pac running into ghost)
             if check_collision(r, g):
@@ -591,10 +605,11 @@ def _run(stdscr):
 
         # Fruit
         if g['fruit_active']:
-            fi = min(g['level'] - 1, len(FRUIT_TABLE) - 1)
-            fch, _, fcol = FRUIT_TABLE[fi]
+            fi = (g['fruit_idx'] - 1) % len(FRUIT_TABLE)
+            fch, _, fcol, _ = FRUIT_TABLE[fi]
             attr = curses.color_pair(fcol) | curses.A_BOLD
-            _put(FRUIT_POS[0], FRUIT_POS[1], fch + ' ', attr)
+            fx, fy = g['fruit_pos']
+            _put(fx, fy, fch + ' ', attr)
 
         # Ghosts
         for gi, gh in enumerate(r['ghosts']):
