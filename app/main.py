@@ -51,6 +51,10 @@ ORIGINAL_MAZE = [
 
 MW = 28
 MH = 31
+TILE_W = 2
+RENDER_W = MW * TILE_W
+MIN_COLS = RENDER_W + 4
+MIN_ROWS = MH + 4
 
 UP = (0, -1)
 DOWN = (0, 1)
@@ -526,11 +530,39 @@ def _run(stdscr):
 
         # Render
         stdscr.erase()
-        ox = max(0, (cols - MW) // 2)
+
+        if rows < MIN_ROWS or cols < MIN_COLS:
+            msg = f"Resize terminal to {MIN_COLS}x{MIN_ROWS}"
+            cur = f"(now {cols}x{rows})"
+            try:
+                stdscr.addstr(rows // 2, max(0, (cols - len(msg)) // 2), msg)
+                stdscr.addstr(
+                    rows // 2 + 1,
+                    max(0, (cols - len(cur)) // 2), cur,
+                )
+            except curses.error:
+                pass
+            stdscr.refresh()
+            continue
+
+        ox = max(0, (cols - RENDER_W) // 2)
         oy = max(0, (rows - MH - 2) // 2) + 1
 
+        def _put(tx, ty, ch, attr=0):
+            sx = ox + tx * TILE_W
+            sy = oy + ty
+            if 0 <= sy < rows and 0 <= sx < cols - 2:
+                try:
+                    stdscr.addstr(sy, sx, ch, attr)
+                except curses.error:
+                    pass
+
         # Header
-        hdr = f" PACMANN  Score:{g['score']}  Lv:{g['level']}  {'>' * g['lives']} "
+        lives_str = '> ' * g['lives']
+        hdr = (
+            f" PACMANN  Score:{g['score']}"
+            f"  Lv:{g['level']}  {lives_str}"
+        )
         hx = max(0, (cols - len(hdr)) // 2)
         try:
             attr = curses.color_pair(9) | curses.A_BOLD
@@ -538,74 +570,59 @@ def _run(stdscr):
         except curses.error:
             pass
 
+        # Maze
         for y in range(MH):
             sy = oy + y
             if sy >= rows:
                 break
             for x in range(MW):
-                sx = ox + x
-                if sx >= cols - 1:
-                    break
                 pos = (x, y)
-                try:
-                    if pos in walls:
-                        stdscr.addstr(sy, sx, '#', curses.color_pair(1))
-                    elif pos in doors:
-                        stdscr.addstr(sy, sx, '-', curses.color_pair(1))
-                    elif pos in g['energizers']:
-                        blink = curses.A_BOLD if int(time.time() * 3) % 2 else 0
-                        stdscr.addstr(sy, sx, 'o', curses.color_pair(2) | blink)
-                    elif pos in g['dots']:
-                        stdscr.addstr(sy, sx, '.', curses.color_pair(2))
-                    else:
-                        stdscr.addstr(sy, sx, ' ')
-                except curses.error:
-                    pass
+                if pos in walls:
+                    _put(x, y, '##', curses.color_pair(1))
+                elif pos in doors:
+                    _put(x, y, '--', curses.color_pair(1))
+                elif pos in g['energizers']:
+                    blink = curses.A_BOLD if int(time.time() * 3) % 2 else 0
+                    _put(x, y, 'oo', curses.color_pair(2) | blink)
+                elif pos in g['dots']:
+                    _put(x, y, ' .', curses.color_pair(2))
+                else:
+                    _put(x, y, '  ')
 
         # Fruit
         if g['fruit_active']:
-            fx, fy = FRUIT_POS
-            fsx, fsy = ox + fx, oy + fy
-            if 0 <= fsy < rows and 0 <= fsx < cols - 1:
-                fi = min(g['level'] - 1, len(FRUIT_TABLE) - 1)
-                fch, _, fcol = FRUIT_TABLE[fi]
-                try:
-                    attr = curses.color_pair(fcol) | curses.A_BOLD
-                    stdscr.addstr(fsy, fsx, fch, attr)
-                except curses.error:
-                    pass
+            fi = min(g['level'] - 1, len(FRUIT_TABLE) - 1)
+            fch, _, fcol = FRUIT_TABLE[fi]
+            attr = curses.color_pair(fcol) | curses.A_BOLD
+            _put(FRUIT_POS[0], FRUIT_POS[1], fch + ' ', attr)
 
+        # Ghosts
         for gi, gh in enumerate(r['ghosts']):
             if gh[5]:
                 continue
-            sx, sy = ox + gh[0], oy + gh[1]
-            if not (0 <= sy < rows and 0 <= sx < cols - 1):
-                continue
-            try:
-                if gh[3] == 'eaten':
-                    stdscr.addstr(sy, sx, '"', curses.color_pair(2))
-                elif gh[3] == 'frightened':
-                    flash = gh[4] < 10 and int(time.time() * 4) % 2
-                    if flash:
-                        attr = curses.color_pair(2) | curses.A_BOLD
-                    else:
-                        attr = curses.color_pair(8)
-                    stdscr.addstr(sy, sx, 'W', attr)
+            if gh[3] == 'eaten':
+                _put(gh[0], gh[1], '""', curses.color_pair(2))
+            elif gh[3] == 'frightened':
+                flash = gh[4] < 10 and int(time.time() * 4) % 2
+                if flash:
+                    attr = curses.color_pair(2) | curses.A_BOLD
                 else:
-                    attr = curses.color_pair(gcolors[gi]) | curses.A_BOLD
-                    stdscr.addstr(sy, sx, gnames[gi], attr)
-            except curses.error:
-                pass
+                    attr = curses.color_pair(8)
+                _put(gh[0], gh[1], 'WW', attr)
+            else:
+                attr = curses.color_pair(gcolors[gi]) | curses.A_BOLD
+                n = gnames[gi]
+                _put(gh[0], gh[1], n + n, attr)
 
-        pac_chars = {LEFT: '<', RIGHT: '>', UP: '^', DOWN: 'V'}
-        pac_ch = pac_chars.get(r['pdir'], 'C')
-        sx, sy = ox + r['px'], oy + r['py']
-        if 0 <= sy < rows and 0 <= sx < cols - 1:
-            try:
-                stdscr.addstr(sy, sx, pac_ch, curses.color_pair(3) | curses.A_BOLD)
-            except curses.error:
-                pass
+        # Pac-Man
+        pac_tiles = {
+            LEFT: '<<', RIGHT: '>>', UP: '^^', DOWN: 'VV',
+        }
+        pac_ch = pac_tiles.get(r['pdir'], '>>')
+        attr = curses.color_pair(3) | curses.A_BOLD
+        _put(r['px'], r['py'], pac_ch, attr)
 
+        # Messages
         msg = None
         mc = curses.color_pair(3) | curses.A_BOLD
         if r.get('paused', False):
@@ -622,7 +639,7 @@ def _run(stdscr):
 
         if msg:
             my = oy + MH // 2
-            mx = ox + max(0, (MW - len(msg)) // 2)
+            mx = ox + max(0, (RENDER_W - len(msg)) // 2)
             if 0 <= my < rows:
                 try:
                     stdscr.addnstr(my, mx, msg, cols - mx, mc)
@@ -633,7 +650,10 @@ def _run(stdscr):
             hlp = "WASD/Arrows  Space=Pause  Q=Quit  R=Restart"
             hx = max(0, (cols - len(hlp)) // 2)
             try:
-                stdscr.addnstr(oy + MH, hx, hlp, cols - hx, curses.color_pair(11))
+                stdscr.addnstr(
+                    oy + MH, hx, hlp, cols - hx,
+                    curses.color_pair(11),
+                )
             except curses.error:
                 pass
 
